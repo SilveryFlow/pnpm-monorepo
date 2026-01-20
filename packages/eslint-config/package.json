@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "type": "module",
   "private": true,
+  "scripts": {
+    "format": "prettier --write --experimental-cli . --ignore-unknown --cache --cache-location .prettiercache"
+  },
   "exports": {
     "./base": "./base.js",
     "./vue": "./vue.js",

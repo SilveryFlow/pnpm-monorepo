@@ -8,15 +8,15 @@ importers:
 
   .:
     devDependencies:
+      '@repo/prettier-config':
+        specifier: workspace:*
+        version: link:packages/prettier-config
       prettier:
         specifier: ^3.8.0
         version: 3.8.0
       turbo:
         specifier: ^2.7.4
         version: 2.7.4
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
 
   apps/vite-project:
     dependencies:
@@ -33,6 +33,9 @@ importers:
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../packages/eslint-config
+      '@repo/prettier-config':
+        specifier: workspace:*
+        version: link:../../packages/prettier-config
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -126,6 +129,12 @@ importers:
       vue-eslint-parser:
         specifier: ^10.2.0
         version: 10.2.0(eslint@9.39.1(jiti@2.6.1))
+
+  packages/prettier-config:
+    devDependencies:
+      prettier:
+        specifier: ^3.8.0
+        version: 3.8.0
 
   packages/typescript-config:
     devDependencies:

@@ -5,13 +5,13 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format": "turbo run format && prettier --write --experimental-cli \"*.{json,md}\" --ignore-unknown",
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
     "prettier": "^3.8.0",
     "turbo": "^2.7.4",
-    "typescript": "5.9.3"
+    "@repo/prettier-config": "workspace:*"
   },
   "packageManager": "pnpm@10.28.0",
   "engines": {

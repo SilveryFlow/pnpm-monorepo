@@ -144,7 +144,6 @@ export const config = defineConfigWithVueTs(
   // 跳过格式化（交给 Prettier）
   skipFormatting,
 )
-
 ```
 
 ##### 3. vitest.js
@@ -201,7 +200,7 @@ export const config = [
 
 #### 3.3.2 在子包中使用
 
-##### 1.  添加为依赖
+##### 1. 添加为依赖
 
 在eslint-config的package.json中通过exports字段配置规则的导出路径
 
@@ -239,8 +238,8 @@ export const config = [
 
 ```json
 {
-  "devDependencies":{
-  	"@repo/eslint-config": "workspace:*"
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*"
   }
 }
 ```
@@ -249,7 +248,7 @@ export const config = [
 
 以`pnpm create vue`得到的vue3+ts+vitest为例
 
-1. ***原本配置***
+1. **_原本配置_**
 
 ```js
 import { globalIgnores } from 'eslint/config'
@@ -287,7 +286,7 @@ export default defineConfigWithVueTs(
 ) as Linter.Config[];
 ```
 
-2. ***使用子包***
+2. **_使用子包_**
 
 eslint的配置没有必要使用ts格式，改为js格式避免干扰构建
 
@@ -323,4 +322,3 @@ export default [
 ##### 3. 清理app依赖
 
 可以通过depcheck检查不再被直接使用的依赖，删除掉
-

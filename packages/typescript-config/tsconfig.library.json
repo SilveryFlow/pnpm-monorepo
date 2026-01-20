@@ -5,6 +5,6 @@
     "composite": true,
     "incremental": true,
 
-    "emitDeclarationOnly":true
+    "emitDeclarationOnly": true
   }
 }

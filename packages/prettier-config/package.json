@@ -1,0 +1,16 @@
+{
+  "name": "@repo/prettier-config",
+  "version": "0.0.0",
+  "main": "index.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write --experimental-cli . --ignore-unknown --cache --cache-location .prettiercache"
+  },
+  "exports": {
+    ".": "./index.js"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.0"
+  }
+}
