@@ -1,5 +1,6 @@
 import { config as vitestVueConfig } from '@repo/eslint-config/vitest-vue'
 import pluginOxlint from 'eslint-plugin-oxlint'
+import autoImport from './.eslintrc-auto-import.json' assert { type: 'json' }
 
 /**
  * Vue 应用的 ESLint 配置
@@ -16,6 +17,14 @@ export default [
   {
     name: 'app/ignores',
     ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/.vitepress/cache/**'],
+  },
+
+  {
+    languageOptions: {
+      globals: {
+        ...autoImport.globals,
+      },
+    },
   },
 
   // vitest-vue 测试配置

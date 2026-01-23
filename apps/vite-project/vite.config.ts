@@ -1,15 +1,67 @@
-import { fileURLToPath, URL } from 'node:url'
-
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import vueDevTools from 'vite-plugin-vue-devtools'
+import { defineConfig, loadEnv, mergeConfig } from 'vite'
+import {
+  vuePluginPreset,
+  vitePluginPreset,
+  createAlias,
+  defaultBuildOptions,
+  defaultCssOptions,
+  defaultServeOptions,
+} from '@repo/vite-config'
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [vue(), vueDevTools()],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
-  },
+export default defineConfig(configEnv => {
+  const { mode } = configEnv
+  const env = loadEnv(mode, process.cwd(), '')
+  const port = Number(env.VITE_PORT) || 5173
+  const API_BASE = env.VITE_BASE_API || '/api'
+  const WS_BASE = env.VITE_WEBSOCKET_BASE_API || '/ws'
+  const UE_BASE = env.VITE_UE_BASE_API || '/ue'
+
+  return mergeConfig(
+    defineConfig({
+      plugins: [...vuePluginPreset(), ...vitePluginPreset()],
+      resolve: {
+        alias: createAlias(import.meta.url),
+      },
+      build: defaultBuildOptions,
+      css: defaultCssOptions,
+      server: defaultServeOptions,
+    }),
+    defineConfig({
+      server: {
+        host: '0.0.0.0', // 局域网访问
+        port,
+        open: true,
+        // 预热常用文件，提升首屏加载速度
+        warmup: {
+          clientFiles: ['./src/main.ts', './src/App.vue', './src/router/index.ts'],
+        },
+        proxy: {
+          // HTTP API 代理
+          [API_BASE]: {
+            target: 'http://127.0.0.1:10002', // 后端接口地址
+            changeOrigin: true,
+            rewrite: path => path.replace(new RegExp(`^${API_BASE}`), ''),
+          },
+
+          // WebSocket 代理
+          [WS_BASE]: {
+            target: 'ws://127.0.0.1:10002', // WebSocket 地址
+            // target: 'ws://localhost:10002', // WebSocket 地址
+            changeOrigin: true,
+            ws: true, // 开启 websocket 代理
+            rewrite: path => path.replace(new RegExp(`^${WS_BASE}`), ''),
+          },
+
+          // UE
+          [UE_BASE]: {
+            target: 'http://127.0.0.1:901', // UE 地址
+            changeOrigin: true,
+            rewrite: path => path.replace(new RegExp(`^${UE_BASE}`), ''),
+          },
+        },
+      },
+    }),
+    false,
+  )
 })

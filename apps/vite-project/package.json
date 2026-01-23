@@ -19,11 +19,18 @@
     "format": "prettier --write --experimental-cli . --ignore-unknown --cache --cache-location .prettiercache"
   },
   "dependencies": {
+    "@vueuse/core": "^14.1.0",
+    "@vueuse/router": "^14.1.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.26",
+    "vue-echarts": "^8.0.1",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/prettier-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@repo/vite-config": "workspace:*",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^24.10.4",
     "@vitejs/plugin-vue": "^6.0.3",
@@ -39,9 +46,6 @@
     "vite": "^7.3.0",
     "vite-plugin-vue-devtools": "^8.0.5",
     "vitest": "^4.0.16",
-    "vue-tsc": "^3.2.2",
-    "@repo/typescript-config": "workspace:*",
-    "@repo/eslint-config": "workspace:*",
-    "@repo/prettier-config": "workspace:*"
+    "vue-tsc": "^3.2.2"
   }
 }

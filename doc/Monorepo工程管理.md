@@ -975,9 +975,11 @@ export default [
 ]
 ```
 
-##### 3. 清理app依赖
+> 可以通过depcheck检查不再被直接使用的依赖，删除掉
 
-可以通过depcheck检查不再被直接使用的依赖，删除掉
+> [!NOTE]
+>
+> 如果要给eslint-config包配置eslint.config.js，直接使用相对路径引入包的配置即可。
 
 ### 3.4 prettier共享包
 
@@ -1180,6 +1182,10 @@ turbo调度不会启动根目录的prettier，因为turbo只会调度位于works
 
 - `prettier --write ...`：负责格式化根目录下的零散文件（如 `README.md`）。
 
+> [!NOTE]
+>
+> prettier-config包几乎被所有子包引用，包括typescript-config和eslint-config。prettier-config包配置自己的prettier.config.js时，使用相对路径引入配置即可。
+
 ### 3.5 vite共享包
 
 运行`pnpm init --init-type module`初始化`@repo/vite-config`子包，创建src/index.ts，修改package.json如下
@@ -1216,7 +1222,7 @@ turbo调度不会启动根目录的prettier，因为turbo只会调度位于works
     ".": "./src/index.ts"
   },
   "devDependencies": {
-    "@types/node": "^25.0.10",
+    "@types/node": "^24.10.9",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "@repo/eslint-config": "workspace:*",
@@ -1235,7 +1241,9 @@ turbo调度不会启动根目录的prettier，因为turbo只会调度位于works
   "extends": "@repo/typescript-config/tsconfig.node.json",
   "compilerOptions": {
     "rootDir": "src",
-    "types": ["node"]
+    "types": ["node"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   },
   "include": ["src/**/*.ts"]
 }
@@ -1315,19 +1323,370 @@ export default {
 >
 > vite的配置组合大于继承
 
+依据vite的配置项拆分，src的目录结构如下
+
 ```bash
-packages/vite-config/
-├── src/
-│   ├── plugins/
-│   │   ├── index.ts      # 插件聚合导出
-│   │   └── vue.ts        # Vue 相关插件配置
-│   ├── options/
-│   │   ├── build.ts      # 构建混淆、压缩、分包
-│   │   └── server.ts     # 开发服务器默认配置
-│   ├── utils/
-│   │   └── alias.ts      # 路径解析工具
-│   └── index.ts          # 主入口，导出各模块
-├── package.json
-└── tsconfig.json
+.
+├── index.ts		# 主入口，导出各模块
+├── options
+│   ├── build.ts	# 构建
+│   ├── css.ts
+│   ├── index.ts		
+│   └── serve.ts
+├── plugins
+│   ├── index.ts	# 插件聚合导出
+│   ├── vite.ts
+│   └── vue.ts		# Vue 相关插件配置
+└── utils
+    ├── alias.ts	# 路径解析工具
+    └── index.ts
 ```
 
+- **工具类**（Alias、路径处理）：**一律用函数**。
+- **插件类**（Vue、UnoCSS、自动导入）：**建议用函数**（即便是空参数的 `() => [...]`）。
+- **参数类**（Build 优化、Server 代理）：**可以用对象**，除非需要根据 `command` (serve/build) 动态切换。
+
+##### 1. options
+
+1. **serve.ts**
+
+```ts
+import type { ServerOptions } from 'vite'
+
+export const serveOptions: ServerOptions = {
+  host: '0.0.0.0', // 局域网访问
+  open: true,
+  // 预热常用文件，提升首屏加载速度
+  warmup: {
+    clientFiles: ['./src/main.js', './src/App.vue', './src/router/index.js'],
+  },
+}
+```
+
+2. **css.ts**
+
+```ts
+import type { CSSOptions } from 'vite'
+
+export const cssOptions: CSSOptions = {
+  devSourcemap: true,
+  preprocessorOptions: {
+    scss: {
+      // 自动注入全局样式变量（如需要可启用）
+      additionalData: '@use "@/assets/styles/scss-variables.scss" as *;',
+    },
+  },
+}
+```
+
+3. **build.ts**
+
+```ts
+import type { BuildOptions } from 'vite'
+
+export const buildOptions: BuildOptions = {
+  rollupOptions: {
+    output: {
+      // 静态资源分类打包
+      chunkFileNames: 'js/[name]-[hash].js',
+      entryFileNames: 'js/[name]-[hash].js',
+
+      assetFileNames: assetInfo => {
+        const name = assetInfo?.names?.[0] ?? ''
+        if (!name) return 'assets/[name]-[hash][extname]'
+
+        // 根据文件类型分类存放
+        if (name.endsWith('.css')) {
+          return 'css/[name]-[hash][extname]'
+        }
+        if (/\.(png|jpe?g|gif|svg|webp|ico)$/.test(name)) {
+          return 'images/[name]-[hash][extname]'
+        }
+        if (/\.(woff2?|eot|ttf|otf)$/.test(name)) {
+          return 'fonts/[name]-[hash][extname]'
+        }
+        return 'assets/[name]-[hash][extname]'
+      },
+    },
+  },
+}
+```
+
+4. **index.ts**
+
+```js
+export * from './build.ts'
+export * from './css.ts'
+export * from './serve.ts'
+```
+
+##### 2. plugins
+
+1. **vite.ts**
+
+```ts
+import { compression } from 'vite-plugin-compression2'
+import viteRestart from 'vite-plugin-restart'
+import { ViteImageOptimizer } from 'vite-plugin-image-optimizer'
+import Font from 'vite-plugin-font'
+import type { PluginOption } from 'vite'
+import UnoCSS from 'unocss/vite'
+
+export const vitePluginPreset = (): PluginOption[] => [
+  compression(),
+  viteRestart({
+    restart: ['.env*', 'vite.config.[jt]s', 'src/config/**/*', 'scripts/vite/**/*'],
+  }),
+  ViteImageOptimizer({}),
+  Font.vite({
+    include: [/\.otf/, /\.ttf/, /\.woff/, /\.woff2/],
+  }),
+  UnoCSS(),
+]
+```
+
+2. **vue.ts**
+
+```ts
+import vue from '@vitejs/plugin-vue'
+import vueDevTools from 'vite-plugin-vue-devtools'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import Icons from 'unplugin-icons/vite'
+import IconsResolver from 'unplugin-icons/resolver'
+import type { PluginOption } from 'vite'
+
+export const VChartResolver = (componentName: string) => {
+  if (componentName === 'VChart') {
+    return {
+      name: 'default',
+      from: 'vue-echarts',
+    }
+  }
+}
+
+export const vuePluginPreset = (): PluginOption[] => [
+  vue(),
+  vueDevTools(),
+  AutoImport({
+    imports: [
+      'vue',
+      'vue-router',
+      'pinia',
+      '@vueuse/core',
+      { '@vueuse/router': ['useRouteHash', 'useRouteQuery', 'useRouteParams'] },
+    ],
+    resolvers: [ElementPlusResolver()],
+    dts: 'src/types/auto-imports.d.ts',
+    eslintrc: {
+      enabled: true,
+    },
+  }),
+  Components({
+    resolvers: [
+      ElementPlusResolver({ importStyle: 'sass' }),
+      IconsResolver({
+        enabledCollections: ['ep'],
+      }),
+      VChartResolver,
+    ],
+    dts: 'src/types/components.d.ts',
+  }),
+  Icons({
+    autoInstall: true,
+  }),
+]
+```
+
+> [!IMPORTANT]
+>
+> 插件中涉及的包，要在使用这些插件的子包中安装。
+>
+> ` pnpm i @vueuse/core @vueuse/router vue-echarts`
+
+3. **index.ts**
+
+```ts
+export * from './vite.ts'
+export * from './vue.ts'
+```
+
+##### 3. utils
+
+1. **alias.ts**
+
+```ts
+import { fileURLToPath, URL } from 'node:url'
+import type { AliasOptions } from 'vite'
+
+export const createAlias = (basePath: string): AliasOptions => [
+  {
+    find: '@',
+    replacement: fileURLToPath(new URL('./src', basePath)),
+  },
+]
+```
+
+2. **index.ts**
+
+```ts
+export * from './alias.ts'
+```
+
+##### 4. index.ts
+
+```ts
+export * from './plugins/index.ts'
+export * from './options/index.ts'
+export * from './utils/index.ts'
+```
+
+#### 3.5.3 安装到子包
+
+相比直接修改package.json添加子包为开发依赖，更推荐使用pnpm命令
+
+##### 1. 方式一：在根目录“远程控制”（最推荐）
+
+在根目录给 `apps/vite-project` 安装 `@repo/vite-config`，直接运行：
+
+```bash
+pnpm add @repo/vite-config --filter @repo/vite-project --workspace
+```
+
+- **`--filter <包名>`**：告诉 pnpm 目标。这里用的是 `package.json` 里的 `name` 字段。
+- **`--workspace`**：强制 pnpm 只从本地工作区寻找这个包，不去远端 npm 仓库找。
+
+------
+
+##### 2. 方式二：进入目录安装（传统方式）
+
+```bash
+cd apps/vite-project
+pnpm add @repo/vite-config --workspace
+```
+
+> [!NOTE]
+>
+> 如果是开发依赖，使用`-D`参数
+
+#### 3.5.4 使用
+
+以`pnpm create vue`得到的vue3+ts+vitest为例
+
+> [!WARNING]
+>
+> 要开启`tsconfig.node.json`中的`"allowImportingTsExtensions": true`这一项`compilerOptions`，否则会打包失败
+
+##### 1. vite.config.ts
+
+```ts
+import { defineConfig, loadEnv, mergeConfig } from 'vite'
+import {
+  vuePluginPreset,
+  vitePluginPreset,
+  createAlias,
+  defaultBuildOptions,
+  defaultCssOptions,
+  defaultServeOptions,
+} from '@repo/vite-config'
+
+// https://vite.dev/config/
+export default defineConfig(configEnv => {
+  const { mode } = configEnv
+  const env = loadEnv(mode, process.cwd(), '')
+  const port = Number(env.VITE_PORT) || 5173
+  const API_BASE = env.VITE_BASE_API || '/api'
+  const WS_BASE = env.VITE_WEBSOCKET_BASE_API || '/ws'
+  const UE_BASE = env.VITE_UE_BASE_API || '/ue'
+
+  return mergeConfig(
+    defineConfig({
+      plugins: [...vuePluginPreset(), ...vitePluginPreset()],
+      resolve: {
+        alias: createAlias(import.meta.url),
+      },
+      build: defaultBuildOptions,
+      css: defaultCssOptions,
+      server: defaultServeOptions,
+    }),
+    defineConfig({
+      server: {
+        host: '0.0.0.0', // 局域网访问
+        port,
+        open: true,
+        // 预热常用文件，提升首屏加载速度
+        warmup: {
+          clientFiles: ['./src/main.ts', './src/App.vue', './src/router/index.ts'],
+        },
+        proxy: {
+          // HTTP API 代理
+          [API_BASE]: {
+            target: 'http://127.0.0.1:10002', // 后端接口地址
+            changeOrigin: true,
+            rewrite: path => path.replace(new RegExp(`^${API_BASE}`), ''),
+          },
+
+          // WebSocket 代理
+          [WS_BASE]: {
+            target: 'ws://127.0.0.1:10002', // WebSocket 地址
+            // target: 'ws://localhost:10002', // WebSocket 地址
+            changeOrigin: true,
+            ws: true, // 开启 websocket 代理
+            rewrite: path => path.replace(new RegExp(`^${WS_BASE}`), ''),
+          },
+
+          // UE
+          [UE_BASE]: {
+            target: 'http://127.0.0.1:901', // UE 地址
+            changeOrigin: true,
+            rewrite: path => path.replace(new RegExp(`^${UE_BASE}`), ''),
+          },
+        },
+      },
+    }),
+    false,
+  )
+})
+```
+
+##### 2. vitest.config.ts
+
+```ts
+import { fileURLToPath } from 'node:url'
+import { mergeConfig, defineConfig, configDefaults } from 'vitest/config'
+import viteConfig from './vite.config'
+
+export default defineConfig(configEnv => {
+  const config = typeof viteConfig === 'function' ? viteConfig(configEnv) : viteConfig
+
+  return mergeConfig(
+    config,
+    defineConfig({
+      test: {
+        environment: 'jsdom',
+        exclude: [...configDefaults.exclude, 'e2e/**'],
+        root: fileURLToPath(new URL('./', import.meta.url)),
+      },
+    }),
+  )
+})
+```
+
+#### 3.5.5 运行&打包测试
+
+配置根目录下`turbo.json`的`build`，outputs设置为vite的打包路径
+
+```json
+{
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**"]
+    }
+  }
+}
+```
+
+分别运行turbo dev和turbo build，看是否正常
