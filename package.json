@@ -10,9 +10,9 @@
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
+    "@repo/prettier-config": "workspace:*",
     "prettier": "^3.8.0",
-    "turbo": "^2.7.4",
-    "@repo/prettier-config": "workspace:*"
+    "turbo": "^2.7.4"
   },
   "packageManager": "pnpm@10.28.0",
   "engines": {
@@ -23,6 +23,12 @@
   "pnpm": {
     "overrides": {
       "@types/node": "^24.10.9"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "cn-font-split",
+      "esbuild",
+      "koffi",
+      "protobufjs"
+    ]
   }
 }

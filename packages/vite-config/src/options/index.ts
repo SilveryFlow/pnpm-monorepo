@@ -1,3 +1,3 @@
-export * from './build.ts'
-export * from './css.ts'
-export * from './serve.ts'
+export * from './build'
+export * from './css'
+export * from './serve'

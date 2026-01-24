@@ -1,2 +1,2 @@
-export * from './vite.ts'
-export * from './vue.ts'
+export * from './vite'
+export * from './vue'

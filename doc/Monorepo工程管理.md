@@ -1242,8 +1242,6 @@ turbo调度不会启动根目录的prettier，因为turbo只会调度位于works
   "compilerOptions": {
     "rootDir": "src",
     "types": ["node"],
-    "noEmit": true,
-    "allowImportingTsExtensions": true
   },
   "include": ["src/**/*.ts"]
 }
@@ -1358,7 +1356,7 @@ export const serveOptions: ServerOptions = {
   open: true,
   // 预热常用文件，提升首屏加载速度
   warmup: {
-    clientFiles: ['./src/main.js', './src/App.vue', './src/router/index.js'],
+    clientFiles: ['./src/main.ts', './src/App.vue', './src/router/index.ts'],
   },
 }
 ```
@@ -1415,9 +1413,9 @@ export const buildOptions: BuildOptions = {
 4. **index.ts**
 
 ```js
-export * from './build.ts'
-export * from './css.ts'
-export * from './serve.ts'
+export * from './build'
+export * from './css'
+export * from './serve'
 ```
 
 ##### 2. plugins
@@ -1428,9 +1426,9 @@ export * from './serve.ts'
 import { compression } from 'vite-plugin-compression2'
 import viteRestart from 'vite-plugin-restart'
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer'
-import Font from 'vite-plugin-font'
-import type { PluginOption } from 'vite'
 import UnoCSS from 'unocss/vite'
+import type { PluginOption } from 'vite'
+import Font from 'vite-plugin-font'
 
 export const vitePluginPreset = (): PluginOption[] => [
   compression(),
@@ -1438,10 +1436,10 @@ export const vitePluginPreset = (): PluginOption[] => [
     restart: ['.env*', 'vite.config.[jt]s', 'src/config/**/*', 'scripts/vite/**/*'],
   }),
   ViteImageOptimizer({}),
+  UnoCSS(),
   Font.vite({
     include: [/\.otf/, /\.ttf/, /\.woff/, /\.woff2/],
   }),
-  UnoCSS(),
 ]
 ```
 
@@ -1501,15 +1499,15 @@ export const vuePluginPreset = (): PluginOption[] => [
 
 > [!IMPORTANT]
 >
-> 插件中涉及的包，要在使用这些插件的子包中安装。
+> `AutoImport`插件中涉及的包，要在使用这些插件的子包中安装。
 >
 > ` pnpm i @vueuse/core @vueuse/router vue-echarts`
 
 3. **index.ts**
 
 ```ts
-export * from './vite.ts'
-export * from './vue.ts'
+export * from './vite'
+export * from './vue'
 ```
 
 ##### 3. utils
@@ -1531,22 +1529,142 @@ export const createAlias = (basePath: string): AliasOptions => [
 2. **index.ts**
 
 ```ts
-export * from './alias.ts'
+export * from './alias'
 ```
 
 ##### 4. index.ts
 
 ```ts
-export * from './plugins/index.ts'
-export * from './options/index.ts'
-export * from './utils/index.ts'
+export * from './plugins'
+export * from './options'
+export * from './utils'
 ```
 
-#### 3.5.3 安装到子包
+#### 3.5.3 打包
+
+> [!IMPORTANT]
+>
+> 如果子包是通过ts编写的，通常是暴露打包后的js文件被其他子包使用。
+
+1. 安装tsdown
+
+```bash
+pnpm add tsdown -D --filter @repo/vite-config
+```
+
+2. 打包配置
+
+打包后的包需要有明确的入口定义，确保app能够准确找到编译后的代码和类型声明。
+
+```json
+{
+  "name": "@repo/vite-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown src/index.ts --format esm --dts --clean",
+    "dev": "tsdown src/index.ts --format esm --dts --watch"
+  }
+}
+```
+
+对于复杂的打包配置，还可以使用配置文件。默认情况下，`tsdown` 会在当前工作目录中查找配置文件，并向上遍历父目录直到找到一个配置文件。
+
+文件名可以是`tsdown.config.ts`，当前配置在配置文件中写法：
+
+```ts
+import { defineConfig } from 'tsdown'
+
+export default defineConfig({
+  entry: 'src/index.ts',
+  format: 'esm',
+  dts: true,
+  clean: true,
+})
+```
+
+这样`package.json`的tsdown脚本就可以简化为
+
+```json
+{
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+  },
+}
+```
+
+--watch开启监听模式，在检测到指定文件或目录的更改时自动重新打包代码
+
+> [!IMPORTANT]
+>
+> vite-config作为配置层，打包结果应该只包括自己的配置，而不包括使用的各种依赖，要开启`skipNodeModulesBundle: true`
+
+```ts
+import { defineConfig } from 'tsdown'
+
+export default defineConfig({
+  entry: 'src/index.ts',
+  format: 'esm',
+  dts: true,
+  clean: true,
+  skipNodeModulesBundle: true,
+})
+```
+
+同时为了让使用vite-config的子包知道该安装哪些依赖，需要维护`package.json`中的`peerDependencies`属性，声明vite-config这个包需要同时安装哪些同伴依赖才能正常使用。不要直接复制`devDependencies`到`peerDependencies`，要筛选app运行/使用配置包必需依赖。
+
+```json
+{
+  "peerDependencies": {
+    "@vitejs/plugin-vue": "^6.0.3",
+    "unocss": "^66.6.0",
+    "unplugin-auto-import": "^21.0.0",
+    "unplugin-icons": "^23.0.1",
+    "unplugin-vue-components": "^31.0.0",
+    "vite": "^7.3.1",
+    "vite-plugin-compression2": "^2.4.0",
+    "vite-plugin-font": "^5.1.2",
+    "vite-plugin-image-optimizer": "^2.0.3",
+    "vite-plugin-restart": "^2.0.0",
+    "vite-plugin-vue-devtools": "^8.0.5"
+  }
+}
+```
+
+3. 配置turbo.json
+
+配置根目录下`turbo.json`的`dev`
+
+```json
+{
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^build"]
+    }
+  }
+}
+```
+
+启动 dev 前，先让所有依赖包执行 build。
+
+#### 3.5.4 安装到子包
 
 相比直接修改package.json添加子包为开发依赖，更推荐使用pnpm命令
 
-##### 1. 方式一：在根目录“远程控制”（最推荐）
+##### 1. 方式一：在根目录安装
 
 在根目录给 `apps/vite-project` 安装 `@repo/vite-config`，直接运行：
 
@@ -1559,7 +1677,7 @@ pnpm add @repo/vite-config --filter @repo/vite-project --workspace
 
 ------
 
-##### 2. 方式二：进入目录安装（传统方式）
+##### 2. 方式二：进入目录安装
 
 ```bash
 cd apps/vite-project
@@ -1570,13 +1688,9 @@ pnpm add @repo/vite-config --workspace
 >
 > 如果是开发依赖，使用`-D`参数
 
-#### 3.5.4 使用
+#### 3.5.5 使用
 
 以`pnpm create vue`得到的vue3+ts+vitest为例
-
-> [!WARNING]
->
-> 要开启`tsconfig.node.json`中的`"allowImportingTsExtensions": true`这一项`compilerOptions`，否则会打包失败
 
 ##### 1. vite.config.ts
 
@@ -1673,7 +1787,7 @@ export default defineConfig(configEnv => {
 })
 ```
 
-#### 3.5.5 运行&打包测试
+#### 3.5.6 运行&打包测试
 
 配置根目录下`turbo.json`的`build`，outputs设置为vite的打包路径
 
