@@ -1803,4 +1803,25 @@ export default defineConfig(configEnv => {
 }
 ```
 
-分别运行turbo dev和turbo build，看是否正常
+分别运行turbo dev和turbo build，看是否正常。
+
+### 3.6 使用turbo命令添加新包
+
+把之前的vite-project改名为template-app，包名变成@repo/template-app。
+
+在根目录的package.json添加如下脚本
+
+```json
+{
+  "scripts": {
+    "app:new": "turbo gen workspace",
+    "app:copy": "turbo gen workspace --copy"
+  },
+}
+```
+
+在命令行运行`pnpm app:copy`，可以选择以现有的子包为基础新增子包。之后可以使用template-app为模板新增应用。
+
+## 四、规范化代码提交
+
+## 五、版本管理与发布
