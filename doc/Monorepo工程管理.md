@@ -2201,3 +2201,50 @@ pnpm exec commitlint --edit $1
 ## 六、单元测试
 
 ## 七、版本管理与发布
+
+不考虑发布到npm公仓或私仓。只做版本管理
+
+### 7.1 版本管理
+
+#### 7.1.1 安装
+
+安装changesets并初始化
+
+```
+pnpm add -Dw @changesets/cli
+pnpm exec changeset init
+```
+
+执行后，根目录会多出一个 `.changeset` 文件夹。`config.json` 是核心配置文件
+
+#### 7.1.2 使用
+
+1. 记录改动
+
+当完成了一个功能（比如改了 `vite-config`），在提交前运行：
+
+```
+pnpm changeset
+```
+
+- 选择改动的包。
+- 选择是 `patch`（小改）、`minor`（新功能）还是 `major`（大更新）。
+- 写一段简短的改动描述。
+- **结果**：生成一个 `.changeset/*.md` 文件。
+
+2. 提交代码
+
+按正常流程 `git add` 和 `pnpm commit`。
+
+3. 汇总版本
+
+当更新版本时，运行：
+
+```
+pnpm changeset version
+```
+
+- **结果**：
+  1. 消耗掉所有 `.changeset/*.md` 文件。
+  2. 自动更新相关子包的 `package.json` 版本号。
+  3. 自动在每个包下生成/更新 `CHANGELOG.md`。
