@@ -93,6 +93,9 @@ importers:
       '@repo/unocss-config':
         specifier: workspace:*
         version: link:../../packages/unocss-config
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       '@repo/vite-config':
         specifier: workspace:*
         version: link:../../packages/vite-config
@@ -288,6 +291,30 @@ importers:
       unocss:
         specifier: ^66.6.0
         version: 66.6.0(postcss@8.5.6)(vite@7.3.1(@types/node@24.10.9)(jiti@2.6.1)(yaml@2.8.2))
+
+  packages/utils:
+    devDependencies:
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@repo/prettier-config':
+        specifier: workspace:*
+        version: link:../prettier-config
+      '@repo/spell-config':
+        specifier: workspace:*
+        version: link:../spell-config
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^24.10.9
+        version: 24.10.9
+      tsdown:
+        specifier: ^0.20.1
+        version: 0.20.1(synckit@0.11.12)(typescript@5.9.3)(vue-tsc@3.2.2(typescript@5.9.3))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   packages/vite-config:
     devDependencies:

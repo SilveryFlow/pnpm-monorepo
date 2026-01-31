@@ -1806,6 +1806,13 @@ export default defineConfig(configEnv => {
 
 分别运行turbo dev和turbo build，看是否正常。
 
+#### 3.5.7 排错指南
+
+对于配置包，如果配置了`"dev": "tsdown --watch"`，且开启了打包的`clean: true`配置，那么根据turbo的调度，运行`pnpm dev`时，会先运行配置包的build，生成dist。之后就会并行运行各个子包的dev。配置包的dev也会先打包，且打包选项会先删除原来的产物。而app的dev也是并行的，可能会导致app刚好用到配置包的时候，配置包被删了，导致app启动出错。
+
+1. 解决方法一：配置包不配置dev。
+2. 解决方法二：关闭打包的clean选项。
+
 ### 3.6 使用turbo命令添加新包
 
 把之前的vite-project改名为template-app，包名变成@repo/template-app。
@@ -2517,3 +2524,97 @@ export default defineConfig({
 ## 九、UI组件包
 
 ## 十、工具函数包
+
+#### 1. 创建子包
+
+```
+pnpm app:copy
+```
+
+复制@repo/unocss-config创建子包
+
+#### 2. 配置子包
+
+添加如下两个script
+
+```json
+{
+  "build": "tsdown",
+  "dev": "tsdown --watch"
+}
+```
+
+完整package.json如下
+
+```json
+{
+  "name": "@repo/utils",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "lint": "eslint . --fix --cache",
+    "format": "prettier --write --experimental-cli \"**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}\" --ignore-unknown --cache --cache-location .prettiercache",
+    "spell": "cspell \"**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}\"",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/prettier-config": "workspace:*",
+    "@repo/spell-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^24.10.9",
+    "tsdown": "^0.20.1",
+    "typescript": "^5.9.3"
+  }
+}
+```
+
+在index.ts写一个示例函数
+
+```ts
+export const getSum = (a: number, b: number) => {
+  return a + b + 1
+}
+```
+
+#### 3. 子包使用
+
+```bash
+pnpm i -D --filter @repo/template-app @repo/utils --workspace
+```
+
+```ts
+//main.ts
+import { getSum } from '@repo/utils'
+console.log(getSum(1, 2))
+```
+
+此时直接修改utils子包的原函数，app里的会热更新。
+
+但由于tsdown的打包机制会先删除dist，会导致类型检查消失。
+
+解决方法：**types指向ts源码**
+
+```json
+{
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    }
+  }
+}
+```

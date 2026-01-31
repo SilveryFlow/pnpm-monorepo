@@ -35,6 +35,7 @@
     "@repo/test-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@repo/unocss-config": "workspace:*",
+    "@repo/utils": "workspace:*",
     "@repo/vite-config": "workspace:*",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^24.10.4",

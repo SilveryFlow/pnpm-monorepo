@@ -1,5 +1,5 @@
 {
-  "name": "@repo/unocss-config",
+  "name": "@repo/utils",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -14,6 +14,7 @@
   },
   "scripts": {
     "build": "tsdown",
+    "dev": "tsdown --watch",
     "lint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli \"**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}\" --ignore-unknown --cache --cache-location .prettiercache",
     "spell": "cspell \"**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}\"",
@@ -26,10 +27,6 @@
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^24.10.9",
     "tsdown": "^0.20.1",
-    "typescript": "^5.9.3",
-    "unocss": "^66.6.0"
-  },
-  "peerDependencies": {
-    "unocss": "^66.6.0"
+    "typescript": "^5.9.3"
   }
 }

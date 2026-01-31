@@ -5,6 +5,6 @@ export default defineConfig({
   presets: [...(defaultConfig.presets ?? [])],
   transformers: [...(defaultConfig.transformers ?? [])],
   shortcuts: {
-    ...(defaultConfig.shortcuts ?? {}),
+    ...defaultConfig.shortcuts,
   },
 })
