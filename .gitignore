@@ -38,8 +38,7 @@ yarn-error.log*
 *.pem
 
 # ai
-.agent
-.shared
+
 
 # 缓存
 **/.eslintcache

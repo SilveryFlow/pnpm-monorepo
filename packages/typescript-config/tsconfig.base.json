@@ -23,6 +23,5 @@
     "exactOptionalPropertyTypes": true,
 
     "skipLibCheck": true
-  },
-  "exclude": ["node_modules", "dist"]
+  }
 }

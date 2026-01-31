@@ -608,19 +608,6 @@ app的tsconfig是通过项目引用来配置的。tsconfig.json作为入口，�
 }
 ```
 
-还有可能会出现app的eslint.config.ts错误，需要给导出显示设置类型
-
-```typescript
-// 显式导入类型，帮助 TS 确定类型来源
-import type { Linter } from 'eslint'
-
-// 给导出添加一个通用的类型注解
-export default defineConfigWithVueTs() as Linter.Config[]
-// ... 你的配置
-```
-
-或者直接设置为any。
-
 ##### 4. exports导出路径
 
 在继承的时候，如果想要简化路径，可以使用package.json的exports字段
@@ -1189,7 +1176,13 @@ turbo调度默认只会调度位于workspace的内容，也就是`apps/**`和`pa
 
 ### 3.5 vite共享包
 
-运行`pnpm init --init-type module`初始化`@repo/vite-config`子包，创建src/index.ts，修改package.json如下
+在packages/vite-config运行命令
+
+```bash
+pnpm init --init-type module && pnpm i -D typescript && pnpm exec tsc --init
+```
+
+初始化`@repo/vite-config`子包，创建src/index.ts，修改package.json如下
 
 ```json
 {
@@ -1235,7 +1228,9 @@ turbo调度默认只会调度位于workspace的内容，也就是`apps/**`和`pa
 
 运行`pnpm i`
 
-3. 配置tsconfig.json
+3. 配置typescript
+
+tsconfig.json
 
 ```json
 {
@@ -1245,6 +1240,16 @@ turbo调度默认只会调度位于workspace的内容，也就是`apps/**`和`pa
     "types": ["node"]
   },
   "include": ["src/**/*.ts"]
+}
+```
+
+package.json
+
+```json
+{
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  }
 }
 ```
 
@@ -1942,7 +1947,165 @@ export default defineConfig({
 
 如果通过引入eslint-config和pretter-config配置eslint和prettier，那么eslint-config和prettier-config包就不要引入@repo/spell-config，规避循环引用的问题。
 
-## 五、规范化代码提交
+## 五、单元测试
+
+#### 1. 规则配置
+
+运行脚本复制vite-config包创建test-config包
+
+```
+pnpm app:copy
+```
+
+安装依赖`vitest、jsdom`，安装后package.json如下
+
+```json
+{
+  "name": "@repo/test-config",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "lint": "eslint . --fix --cache",
+    "format": "prettier --write --experimental-cli \"**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}\" --ignore-unknown --cache --cache-location .prettiercache",
+    "spell": "cspell \"**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}\"",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/prettier-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@repo/spell-config": "workspace:*",
+    "@types/node": "^24.10.9",
+    "jsdom": "^26.0.0",
+    "tsdown": "^0.20.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.0.4"
+  },
+  "peerDependencies": {
+    "jsdom": "^26.0.0",
+    "vitest": "^3.0.4"
+  }
+}
+```
+
+#### 2. 规则配置
+
+清理src下的文件，修改index.ts
+
+```ts
+import { mergeConfig, defineConfig, configDefaults } from 'vitest/config'
+import type { ViteUserConfig, ConfigEnv } from 'vitest/config'
+
+/**
+ * 基础 Vitest 配置预设
+ */
+export const baseVitestConfig = defineConfig({
+  test: {
+    environment: 'jsdom',
+    exclude: [...configDefaults.exclude, 'e2e/**'],
+  },
+})
+
+/**
+ * 合并应用特定的 Vite 配置和 Vitest 预设
+ * @param viteConfig 应用的 Vite 配置
+ * @param vitestOverrides 覆盖 Vitest 配置
+ */
+export function defineVitestConfig(
+  viteConfig: ViteUserConfig | ((env: ConfigEnv) => ViteUserConfig),
+  vitestOverrides: ViteUserConfig = {},
+) {
+  return defineConfig(configEnv => {
+    const baseConfig = typeof viteConfig === 'function' ? viteConfig(configEnv) : viteConfig
+
+    return mergeConfig(baseConfig, mergeConfig(baseVitestConfig, vitestOverrides))
+  })
+}
+```
+
+#### 3. app使用
+
+以template-app为例，修改vitest.config.ts如下
+
+```ts
+import { fileURLToPath } from 'node:url'
+import { defineVitestConfig } from '@repo/test-config'
+import viteConfig from './vite.config'
+
+export default defineVitestConfig(viteConfig, {
+  test: {
+    root: fileURLToPath(new URL('./', import.meta.url)),
+  },
+})
+```
+
+#### 4. 任务编排
+
+编排单次测试和监视模式的任务
+
+1. template-app的package.json
+
+```json
+{
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}
+```
+
+2. 根目录的turbo.json
+
+```json
+{
+  "tasks": {
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
+    "test": {
+      "dependsOn": ["transit", "@repo/test-config#build"],
+      "outputs": ["coverage/**"]
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
+```
+
+引入 transit 节点，使test依赖于当前包的transit。因为当前包没有transit的script，所以被视为立刻完成，会立即执行当前包的test。这种处理会并行执行每个包的script，但又保留了在turbo中的依赖关系。
+
+> [!TIP]
+>
+> Lint/type-check：这些工具通常只需要读源代码，不需要等待依赖包编译的也推荐依赖transit
+>
+> format/spell：不影响代码运行，推荐无依赖链，只关注当前包的文件。
+
+3. 根目录的package.json
+
+```json
+{
+  "scripts": {
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch"
+  }
+}
+```
+
+## 六、规范化代码提交
 
 ### 5.1 工具安装
 
@@ -2205,8 +2368,6 @@ pnpm exec commitlint --edit $1
 > [!IMPORTANT]
 >
 > 确保换行符是LF
-
-## 六、单元测试
 
 ## 七、版本管理与发布
 
