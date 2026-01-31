@@ -1605,7 +1605,7 @@ export default defineConfig({
 }
 ```
 
---watch开启监听模式，在检测到指定文件或目录的更改时自动重新打包代码
+--watch开启监听模式，在检测到指定文件或目录的更改时自动重新打包代码。配置包作为基石几乎不在开发中变动，变动也只是app各自的配置，所以无需开启监听模式。
 
 > [!IMPORTANT]
 >
@@ -2417,3 +2417,103 @@ pnpm changeset version
   1. 消耗掉所有 `.changeset/*.md` 文件。
   2. 自动更新相关子包的 `package.json` 版本号。
   3. 自动在每个包下生成/更新 `CHANGELOG.md`。
+
+## 八、UnoCSS
+
+#### 1. 创建子包
+
+```bash
+pnpm app:copy
+```
+
+复制@repo/test-config包创建@repo/unocss-config，安装依赖
+
+```bash
+pnpm i -D unocss
+```
+
+```json
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/prettier-config": "workspace:*",
+    "@repo/spell-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^24.10.9",
+    "tsdown": "^0.20.1",
+    "typescript": "^5.9.3",
+    "unocss": "^66.6.0"
+  },
+  "peerDependencies": {
+    "unocss": "^66.6.0"
+  }
+```
+
+#### 2. 配置
+
+src/index.ts
+
+```ts
+// uno.config.ts
+import {
+  defineConfig,
+  presetWind4,
+  presetAttributify,
+  presetIcons,
+  transformerDirectives,
+  transformerVariantGroup,
+} from 'unocss'
+
+export default defineConfig({
+  // 1. 预设 (Presets)
+  presets: [
+    presetWind4(),
+    // 启用属性模式：解决 HTML class 冗长问题
+    // <div class="m-2 p-1 text-red"> 变成 <div m-2 p-1 text-red>
+    presetAttributify(),
+
+    // 图标预设：直接用 class 写图标，如 i-carbon-sun
+    presetIcons({
+      scale: 1.2,
+      warn: true,
+    }),
+  ],
+
+  // 2. 转换器 (Transformers) - 关键！
+  transformers: [
+    // 启用 @apply 功能，支持在 SCSS/CSS 文件中使用 UnoCSS 类
+    transformerDirectives(),
+
+    // 启用变体组：hover:(bg-red text-white) 简写
+    transformerVariantGroup(),
+  ],
+
+  // 3. 自定义规则或快捷方式
+  shortcuts: {
+    'flex-center': 'flex justify-center items-center',
+  },
+})
+```
+
+#### 3. 子包使用
+
+```bash
+pnpm add @repo/unocss-config --filter @repo/template-app --workspace -D
+```
+
+```ts
+// uno.config.ts
+import { defineConfig } from 'unocss'
+import defaultConfig from '@repo/unocss-config'
+
+export default defineConfig({
+  presets: [...(defaultConfig.presets ?? [])],
+  transformers: [...(defaultConfig.transformers ?? [])],
+  shortcuts: {
+    ...(defaultConfig.shortcuts ?? {}),
+  },
+})
+```
+
+## 九、UI组件包
+
+## 十、工具函数包

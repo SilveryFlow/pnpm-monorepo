@@ -14,7 +14,10 @@
       "inputs": ["!apps", "!packages", "packages/eslint-config/base.js", "*.{js,ts,mjs,cjs,vue}"]
     },
     "format": {
-      "inputs": ["**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}", "../../packages/prettier-config/index.js"],
+      "inputs": [
+        "**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}",
+        "$TURBO_ROOT$/packages/prettier-config/index.js"
+      ],
       "outputs": []
     },
     "//#format:root": {
@@ -28,7 +31,7 @@
       "outputs": []
     },
     "spell": {
-      "inputs": ["**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}", "../../cspell.config.js"],
+      "inputs": ["**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}", "$TURBO_ROOT$/packages/spell-config/index.js"],
       "outputs": []
     },
     "//#spell:root": {
@@ -48,7 +51,7 @@
       "dependsOn": ["transit"]
     },
     "test": {
-      "dependsOn": ["transit", "@repo/test-config#build"],
+      "dependsOn": ["transit"],
       "outputs": ["coverage/**"]
     },
     "test:watch": {

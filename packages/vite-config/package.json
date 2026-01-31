@@ -14,7 +14,6 @@
   },
   "scripts": {
     "build": "tsdown",
-    "dev": "tsdown --watch",
     "lint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli \"**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}\" --ignore-unknown --cache --cache-location .prettiercache",
     "spell": "cspell \"**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}\"",
