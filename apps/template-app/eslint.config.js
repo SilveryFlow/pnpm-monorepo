@@ -1,6 +1,7 @@
 import { config as vitestVueConfig } from '@repo/eslint-config/vitest-vue'
 import pluginOxlint from 'eslint-plugin-oxlint'
 import autoImport from './.eslintrc-auto-import.json' with { type: 'json' }
+import unocss from '@unocss/eslint-config/flat'
 
 /**
  * Vue 应用的 ESLint 配置
@@ -26,6 +27,8 @@ export default [
       },
     },
   },
+
+  unocss,
 
   // vitest-vue 测试配置
   ...vitestVueConfig,
