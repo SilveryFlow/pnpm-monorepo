@@ -1,6 +1,6 @@
 {
   "name": "@repo/utils",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "private": true,
   "main": "./dist/index.mjs",
@@ -18,15 +18,19 @@
     "lint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli \"**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}\" --ignore-unknown --cache --cache-location .prettiercache",
     "spell": "cspell \"**/*.{js,ts,mjs,cjs,json,css,less,scss,vue,html,md}\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/prettier-config": "workspace:*",
     "@repo/spell-config": "workspace:*",
+    "@repo/test-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^24.10.9",
     "tsdown": "^0.20.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.0.4"
   }
 }

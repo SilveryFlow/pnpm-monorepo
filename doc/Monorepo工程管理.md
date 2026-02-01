@@ -2618,3 +2618,9 @@ console.log(getSum(1, 2))
   }
 }
 ```
+
+#### 4. 子包测试
+
+```
+pnpm i -D --filter @repo/utils @repo/test-config --workspace
+```
