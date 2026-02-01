@@ -2624,3 +2624,97 @@ console.log(getSum(1, 2))
 ```
 pnpm i -D --filter @repo/utils @repo/test-config --workspace
 ```
+
+在子包目录创建vitest.config.ts
+
+```ts
+// vitest.config.ts
+import { defineVitestConfig } from '@repo/test-config'
+
+export default defineVitestConfig({})
+```
+
+重新组织src文件夹
+
+```bash
+.
+├── index.ts
+└── math
+    ├── index.ts
+    └── sum.ts
+```
+
+在math文件夹下新增`__test__`文件夹，创建`sum.spec.ts`文件
+
+```ts
+import { describe, it, expect } from 'vitest'
+import { getSum } from '../sum'
+
+describe('getSum', () => {
+  it('should return the sum of two numbers', () => {
+    expect(getSum(1, 2)).toBe(3)
+  })
+
+  it('should work with negative numbers', () => {
+    expect(getSum(-1, 1)).toBe(0)
+    expect(getSum(-1, -2)).toBe(-3)
+  })
+})
+```
+
+package.json新增脚本
+
+```json
+{
+  "test": "vitest run",
+  "test:watch": "vitest"
+}
+```
+
+#### 5. 使用npm包
+
+以day.js为例
+
+1. 安装day.js为运行依赖
+
+```
+pnpm i day.js
+```
+
+2. 封装函数
+
+```ts
+// src/time/index.ts
+import dayjs from 'dayjs'
+
+/**
+ * 获取当前时间，格式为YYYY-MM-DD HH:mm:ss
+ * @returns 当前时间
+ */
+export const getNow = () => {
+  return dayjs().format('YYYY-MM-DD HH:mm:ss')
+}
+```
+
+3. 修改打包配置
+
+```ts
+import { defineConfig } from 'tsdown'
+
+export default defineConfig({
+  entry: 'src/index.ts',
+  format: 'esm',
+  dts: true,
+  clean: true,
+  // skipNodeModulesBundle: true, 取消强制不打包node_modules
+})
+```
+
+4. app使用
+
+打包utils后，app可直接使用
+
+```ts
+import { getNow } from '@repo/utils'
+console.log(getNow())
+```
