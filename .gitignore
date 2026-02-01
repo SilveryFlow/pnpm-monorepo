@@ -38,9 +38,12 @@ yarn-error.log*
 *.pem
 
 # ai
+.cursor/
+.agents/
 
 
 # 缓存
 **/.eslintcache
 **/.prettiercache
+**/.cspellcache
 
